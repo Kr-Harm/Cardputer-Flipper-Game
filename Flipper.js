@@ -1,120 +1,127 @@
-// M5Stack Cardputer Setup (TFT Display und Tastatur)
-#include <M5Stack.h>
-
-int width = 240;  // TFT-Breite
-int height = 135; // TFT-Höhe
+let width = 240;  // TFT-Breite
+let height = 135; // TFT-Höhe
 
 // Ball und Flipper-Parameter
-struct Ball {
-  int x, y, radius, dx, dy;
-} ball;
+let ball = {
+  x: width / 2,
+  y: height / 2,
+  radius: 4,
+  dx: 1,
+  dy: -1
+};
 
-struct Paddle {
-  int x, y, width, height;
-} paddle1, paddle2;
+let paddle1 = {
+  x: 50,
+  y: height - 10,
+  width: 40,
+  height: 5
+};
+
+let paddle2 = {
+  x: width - 90,
+  y: height - 10,
+  width: 40,
+  height: 5
+};
 
 // Spielstatus und Score
-int score = 0;
-bool gameOver = false;
+let score = 0;
+let gameOver = false;
 
 // Initialisierung
-void setup() {
-  M5.begin();
-  M5.Lcd.setRotation(3);
-  M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setTextColor(WHITE);
+function setup() {
+  createCanvas(width, height);
+  resetGame();
+}
 
-  // Ball- und Flipper-Positionen
-  ball = {width / 2, height / 2, 4, 1, -1};
-  paddle1 = {50, height - 10, 40, 5};
-  paddle2 = {width - 90, height - 10, 40, 5};
-
-  // Spielstatus zurücksetzen
+function resetGame() {
+  ball = { x: width / 2, y: height / 2, radius: 4, dx: 1, dy: -1 };
+  paddle1 = { x: 50, y: height - 10, width: 40, height: 5 };
+  paddle2 = { x: width - 90, y: height - 10, width: 40, height: 5 };
   score = 0;
   gameOver = false;
-  M5.Lcd.setCursor(10, 10);
-  M5.Lcd.print("Score: ");
-  M5.Lcd.print(score);
-  M5.Lcd.setCursor(10, 30);
-  M5.Lcd.print("Press keys to play");
 }
 
 // Ball bewegen
-void moveBall() {
+function moveBall() {
   ball.x += ball.dx;
   ball.y += ball.dy;
 
   // Ball Kollision mit den Wänden
-  if (ball.x <= 0 || ball.x >= width) ball.dx = -ball.dx;  // Seitenwände
+  if (ball.x <= 0 || ball.x >= width) ball.dx = -ball.dx; // Seitenwände
   if (ball.y <= 0) ball.dy = -ball.dy; // Decke
 
   // Ball Kollision mit Flippern
-  if (ball.y + ball.radius >= paddle1.y && ball.x >= paddle1.x && ball.x <= paddle1.x + paddle1.width) {
+  if (
+      ball.y + ball.radius >= paddle1.y &&
+      ball.x >= paddle1.x &&
+      ball.x <= paddle1.x + paddle1.width
+  ) {
     ball.dy = -ball.dy;
-    score++;  // Punkte erhöhen
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.fillRect(10, 10, 60, 20, BLACK);
-    M5.Lcd.print("Score: ");
-    M5.Lcd.print(score);
+    score++;
   }
 
-  if (ball.y + ball.radius >= paddle2.y && ball.x >= paddle2.x && ball.x <= paddle2.x + paddle2.width) {
+  if (
+      ball.y + ball.radius >= paddle2.y &&
+      ball.x >= paddle2.x &&
+      ball.x <= paddle2.x + paddle2.width
+  ) {
     ball.dy = -ball.dy;
-    score++;  // Punkte erhöhen
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.fillRect(10, 10, 60, 20, BLACK);
-    M5.Lcd.print("Score: ");
-    M5.Lcd.print(score);
+    score++;
   }
 
   // Spielende, wenn der Ball den Boden erreicht
   if (ball.y + ball.radius >= height) {
     gameOver = true;
-    M5.Lcd.fillScreen(RED);
-    M5.Lcd.setCursor(width / 4, height / 2);
-    M5.Lcd.print("GAME OVER");
-    M5.Lcd.setCursor(width / 4, height / 2 + 20);
-    M5.Lcd.print("Press any key to restart");
   }
 }
 
-// Flipper bewegen (Steuerung über Tastatur)
-void movePaddles() {
-  if (M5.BtnA.wasPressed()) paddle1.x -= 5; // Flipper 1 nach links
-  if (M5.BtnB.wasPressed()) paddle1.x += 5; // Flipper 1 nach rechts
+// Flipper bewegen
+function movePaddles() {
+  if (keyIsDown(LEFT_ARROW)) paddle1.x -= 5; // Flipper 1 nach links
+  if (keyIsDown(RIGHT_ARROW)) paddle1.x += 5; // Flipper 1 nach rechts
+
+  if (keyIsDown(65)) paddle2.x -= 5; // Flipper 2 nach links (Taste 'A')
+  if (keyIsDown(68)) paddle2.x += 5; // Flipper 2 nach rechts (Taste 'D')
 
   // Grenzen für Flipper
-  if (paddle1.x < 0) paddle1.x = 0;
-  if (paddle1.x > width / 2 - paddle1.width) paddle1.x = width / 2 - paddle1.width;
-
-  if (M5.BtnC.wasPressed()) paddle2.x -= 5; // Flipper 2 nach links
-  if (M5.BtnD.wasPressed()) paddle2.x += 5; // Flipper 2 nach rechts
-
-  // Grenzen für Flipper
-  if (paddle2.x < width / 2) paddle2.x = width / 2;
-  if (paddle2.x > width - paddle2.width) paddle2.x = width - paddle2.width;
+  paddle1.x = constrain(paddle1.x, 0, width / 2 - paddle1.width);
+  paddle2.x = constrain(paddle2.x, width / 2, width - paddle2.width);
 }
 
 // Spielfeld zeichnen
-void draw() {
-  M5.Lcd.fillRect(0, 0, width, height, BLACK);
-  M5.Lcd.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height, BLUE); // Flipper 1
-  M5.Lcd.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height, GREEN); // Flipper 2
-  M5.Lcd.fillRect(ball.x - ball.radius, ball.y - ball.radius, ball.radius * 2, ball.radius * 2, WHITE); // Ball
+function drawGame() {
+  background(0);
+  fill(255);
+  textSize(12);
+  text(`Score: ${score}`, 10, 10);
+
+  fill(0, 0, 255);
+  rect(paddle1.x, paddle1.y, paddle1.width, paddle1.height); // Flipper 1
+
+  fill(0, 255, 0);
+  rect(paddle2.x, paddle2.y, paddle2.width, paddle2.height); // Flipper 2
+
+  fill(255);
+  ellipse(ball.x, ball.y, ball.radius * 2); // Ball
+
+  if (gameOver) {
+    fill(255, 0, 0);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text("GAME OVER", width / 2, height / 2);
+    text("Press any key to restart", width / 2, height / 2 + 20);
+  }
 }
 
 // Hauptspiel-Loop
-void loop() {
-  if (gameOver && M5.BtnA.wasPressed() || M5.BtnB.wasPressed() || M5.BtnC.wasPressed() || M5.BtnD.wasPressed()) {
-    setup();  // Neustart
-  }
-
+function draw() {
   if (!gameOver) {
     moveBall();
     movePaddles();
-    draw();
-    delay(10); // Verzögerung für bessere Steuerung
+    drawGame();
+  } else {
+    drawGame();
+    if (keyIsPressed) resetGame();
   }
-
-  M5.update(); // Tasteneingabe aktualisieren
 }
